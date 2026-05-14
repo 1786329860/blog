@@ -1,6 +1,4 @@
-FROM node:20-alpine AS base
-
-RUN apk add --no-cache libc6-compat
+FROM node:20-slim AS base
 
 WORKDIR /app
 
@@ -19,7 +17,7 @@ ENV NODE_ENV=production
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:20-slim AS runner
+FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
