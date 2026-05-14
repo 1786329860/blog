@@ -32,7 +32,8 @@ RUN adduser --system --uid 1001 nextjs
 
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules/next/dist ./node_modules/next/dist
+COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
+COPY --from=builder /app/node_modules/next ./node_modules/next
 COPY --from=builder /app/node_modules/react ./node_modules/react
 COPY --from=builder /app/node_modules/react-dom ./node_modules/react-dom
 COPY --from=builder /app/prisma ./prisma
