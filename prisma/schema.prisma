@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider      = "postgresql"
+  url           = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  password      String
+  name          String
+  avatar        String?
+  bio           String?
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  posts         Post[]
+  comments      Comment[]
+  guestbooks    Guestbook[]
+
+  @@map("users")
+}
+
+model Post {
+  id          String     @id @default(cuid())
+  title       String
+  slug        String     @unique
+  content     String     @db.Text
+  excerpt     String?
+  coverImage  String?
+  isPublished Boolean    @default(false)
+  isTop       Boolean    @default(false)
+  viewCount   Int        @default(0)
+  readTime    Int?
+  publishedAt DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  authorId    String
+  author      User       @relation(fields: [authorId], references: [id])
+
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id])
+  tags        PostTag[]
+  comments    Comment[]
+
+  @@index([isPublished, publishedAt])
+  @@index([slug])
+  @@map("posts")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  createdAt DateTime  @default(now())
+
+  posts     PostTag[]
+
+  @@map("tags")
+}
+
+model PostTag {
+  postId String
+  tagId   String
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag  Tag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  content   String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  postId    String
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId  String
+  author    User      @relation(fields: [authorId], references: [id])
+
+  @@index([postId])
+  @@map("comments")
+}
+
+model Guestbook {
+  id         String    @id @default(cuid())
+  content    String
+  authorName String
+  authorEmail String?
+  createdAt  DateTime  @default(now())
+
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+
+  @@map("guestbooks")
+}
+
+enum Role {
+  USER
+  ADMIN
+}

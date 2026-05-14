@@ -1,0 +1,84 @@
+name: Deploy Blog
+
+on:
+  push:
+    branches: [main]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: type=sha
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.1.0
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASS }}
+          port: ${{ secrets.SERVER_PORT || '22' }}
+          script: |
+            cd /opt/blog
+            
+            if [ -f .env ]; then
+              echo "Found .env file"
+            else
+              echo "No .env found, creating from template"
+              cat > .env << 'EOF'
+            DATABASE_URL="postgresql://postgres:${{ secrets.DB_PASSWORD }}@localhost:5432/blog_db?schema=public"
+            NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
+            NEXTAUTH_URL="https://tucao.aixiaolv.icu"
+            EOF
+            fi
+            
+            git pull origin main || echo "First deployment or no git repo"
+            
+            docker compose pull
+            docker compose up -d --build
+            
+            sleep 10
+            
+            if docker ps | grep -q blog; then
+              echo "✅ Blog container is running"
+              docker logs blog --tail 20
+            else
+              echo "❌ Blog container failed to start"
+              docker logs blog
+              exit 1
+            fi

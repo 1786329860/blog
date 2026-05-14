@@ -1,0 +1,22 @@
+version: "3.8"
+
+services:
+  blog:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: blog
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:${DB_PASSWORD}@host-gateway.internal:5432/blog_db?schema=public
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-https://tucao.aixiaolv.icu}
+    mem_limit: 1g
+    networks:
+      - blog-net
+
+networks:
+  blog-net:
+    driver: bridge
