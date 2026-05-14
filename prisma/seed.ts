@@ -102,9 +102,9 @@ async function main() {
       authorId: admin.id,
       categoryId: categories[0].id,
       tags: {
-        connect: [
-          { id: (await prisma.tag.findUnique({ where: { slug: "nextjs" } }))!.id },
-          { id: (await prisma.tag.findUnique({ where: { slug: "blog" } }))!.id },
+        create: [
+          { tag: { connect: { slug: "nextjs" } } },
+          { tag: { connect: { slug: "blog" } } },
         ],
       },
     },
