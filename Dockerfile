@@ -1,4 +1,6 @@
-FROM node:20-slim AS base
+FROM node:20-alpine AS base
+
+RUN apk add --no-cache libc6-compat openssl
 
 WORKDIR /app
 
@@ -13,6 +15,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 
 RUN npx prisma generate
 RUN npm run build
